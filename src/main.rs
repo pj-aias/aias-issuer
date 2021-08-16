@@ -1,8 +1,14 @@
+#[macro_use]
+extern crate rbatis;
+
 use actix_session::CookieSession;
 use actix_web::{web, App, HttpServer};
+use std::sync::Arc;
+use std::sync::Mutex;
 
 use rand::Rng;
 
+mod db;
 mod handler;
 mod tests;
 mod utils;
@@ -18,15 +24,17 @@ async fn main() -> io::Result<()> {
         key[i] = rng.gen();
     }
 
+    let rb = db::init_db();
+    let data = Arc::new(Mutex::new(rb));
+
     HttpServer::new(move || {
         App::new()
             .wrap(CookieSession::private(&key).secure(true))
-            // .data(data.clone())
+            .data(data.clone())
             .route("/hello", web::get().to(handler::hello))
             .route("/prepare_code", web::post().to(handler::prepare_sms_auth))
             .route("/check_code", web::post().to(handler::check_sms_code))
     })
-    
     .bind("0.0.0.0:8080")?
     .run()
     .await

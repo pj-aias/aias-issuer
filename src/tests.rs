@@ -1,15 +1,22 @@
 use actix_session::CookieSession;
 use actix_web::{test, web, App};
+use std::sync::Arc;
+use std::sync::Mutex;
 
 use std::env;
 
 use crate::handler;
 use crate::handler::{CheckSMSAuthReq, PrepareSMSAuthReq};
 
+use crate::db;
+
 use serde_json;
 
 #[actix_rt::test]
-async fn test_sms_auth() {
+async fn test() {
+    let rb = db::init_db();
+    let data = Arc::new(Mutex::new(rb));
+
     let app = App::new()
         .wrap(CookieSession::private(&[0; 32]).secure(true))
         // .data(data.clone())
@@ -28,6 +35,7 @@ async fn test_sms_auth() {
         .uri("/prepare_code")
         .set_payload(phone_req)
         .header("Content-Type", "text/json")
+        .data(data.clone())
         .to_request();
 
     let resp = test::call_service(&mut app, req).await;
@@ -50,6 +58,7 @@ async fn test_sms_auth() {
         .cookie(cookie.clone())
         .set_payload(check_sms_req)
         .header("Content-Type", "text/json")
+        .data(data.clone())
         .to_request();
 
     let resp = test::call_service(&mut app, check_sms_req).await;
