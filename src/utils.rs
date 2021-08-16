@@ -22,5 +22,5 @@ pub async fn send_sms(to: &str, body: &str) -> Result<(), ()> {
 }
 
 pub async fn get_err_resp() -> Result<HttpResponse, WebError> {
-    HttpResponse::BadRequest().json(BasicResponse {}).await
+    HttpResponse::Forbidden().json(BasicResponse {}).await
 }

@@ -23,8 +23,10 @@ async fn main() -> io::Result<()> {
             .wrap(CookieSession::private(&key).secure(true))
             // .data(data.clone())
             .route("/hello", web::get().to(handler::hello))
-            .route("/prepare", web::get().to(handler::prepare_sms_auth))
+            .route("/prepare_code", web::post().to(handler::prepare_sms_auth))
+            .route("/check_code", web::post().to(handler::check_sms_code))
     })
+    
     .bind("0.0.0.0:8080")?
     .run()
     .await

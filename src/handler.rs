@@ -17,6 +17,16 @@ pub struct PrepareSMSAuthReq {
     pub phone_number: String,
 }
 
+#[derive(Deserialize, Serialize)]
+pub struct CheckSMSAuthReq {
+    pub code: String,
+}
+
+#[derive(Deserialize, Serialize)]
+pub struct CheckSMSAuthResp {
+    pub token: String,
+}
+
 pub async fn hello() -> impl Responder {
     println!("hello");
     HttpResponse::Ok().body("Hello world")
@@ -28,17 +38,19 @@ pub async fn prepare_sms_auth(
 ) -> Result<HttpResponse, WebError> {
     println!("send_sms");
 
-    let is_debugging = env::var("DEBUGGING").expect("Find DEBUGGING environment variable");
-    let token: String = thread_rng()
+    let is_debugging = env::var("AIAS_DEBUG").expect("Find DEBUGGING environment variable");
+    let code: String = thread_rng()
         .sample_iter(&Alphanumeric)
         .take(32)
         .map(char::from)
         .collect();
 
     let phone_number = &phone_number.phone_number;
-    let body = format!("token {}", token);
+    let body = format!("code {}", code);
 
     if is_debugging == "true" {
+        env::set_var("AIAS_TEST_CODE", code.clone());
+    } else {
         match utils::send_sms(phone_number, &body).await {
             Ok(_) => {}
             Err(_) => return utils::get_err_resp().await,
@@ -50,10 +62,32 @@ pub async fn prepare_sms_auth(
         Err(_) => return utils::get_err_resp().await,
     }
 
-    match session.set("token", token) {
+    match session.set("code", code) {
         Ok(_) => {}
         Err(_) => return utils::get_err_resp().await,
     }
 
     HttpResponse::Ok().json(BasicResponse {}).await
+}
+
+pub async fn check_sms_code(
+    code: web::Json<CheckSMSAuthReq>,
+    session: Session,
+) -> Result<HttpResponse, WebError> {
+    println!("check_sms_code");
+
+    let expect = session.get::<String>("code")?;
+    let expect = expect.unwrap();
+
+    let token: String = thread_rng()
+        .sample_iter(&Alphanumeric)
+        .take(32)
+        .map(char::from)
+        .collect();
+
+    if code.code == expect {
+        HttpResponse::Ok().json(CheckSMSAuthResp { token }).await
+    } else {
+        utils::get_err_resp().await
+    }
 }
