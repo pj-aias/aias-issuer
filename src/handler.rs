@@ -7,6 +7,8 @@ use rand::distributions::Alphanumeric;
 use rand::{thread_rng, Rng};
 use std::env;
 
+use crate::db;
+
 use serde::{Deserialize, Serialize};
 
 #[derive(Deserialize, Serialize)]
@@ -84,6 +86,23 @@ pub async fn check_sms_code(
         .take(32)
         .map(char::from)
         .collect();
+
+    let rb = db::init_db();
+
+    // TODO: Check token conflict
+
+    let phone_number = session.get::<String>("phone_number")?;
+    let phone_number = phone_number.unwrap();
+
+    db::save(
+        &rb.await,
+        &db::Member {
+            id: None,
+            phone_number: Some(phone_number),
+            token: Some(token.clone()),
+        },
+    )
+    .await;
 
     if code.code == expect {
         HttpResponse::Ok().json(CheckSMSAuthResp { token }).await
