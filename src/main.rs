@@ -34,6 +34,10 @@ async fn main() -> io::Result<()> {
             .route("/hello", web::get().to(handler::hello))
             .route("/send_code", web::post().to(handler::send_code))
             .route("/verify_code", web::post().to(handler::verify_code))
+            .route(
+                "/issue_credential",
+                web::post().to(handler::issue_credential),
+            )
     })
     .bind("0.0.0.0:8080")?
     .run()
