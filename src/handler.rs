@@ -15,17 +15,17 @@ use serde::{Deserialize, Serialize};
 pub struct BasicResponse {}
 
 #[derive(Deserialize, Serialize)]
-pub struct PrepareSMSAuthReq {
+pub struct SendCodeReq {
     pub phone_number: String,
 }
 
 #[derive(Deserialize, Serialize)]
-pub struct CheckSMSAuthReq {
+pub struct VerifyCodeReq {
     pub code: String,
 }
 
 #[derive(Deserialize, Serialize)]
-pub struct CheckSMSAuthResp {
+pub struct VerifyCodeResp {
     pub token: String,
 }
 
@@ -34,8 +34,8 @@ pub async fn hello() -> impl Responder {
     HttpResponse::Ok().body("Hello world")
 }
 
-pub async fn prepare_sms_auth(
-    phone_number: web::Json<PrepareSMSAuthReq>,
+pub async fn send_code(
+    phone_number: web::Json<SendCodeReq>,
     session: Session,
 ) -> Result<HttpResponse, WebError> {
     println!("send_sms");
@@ -72,8 +72,8 @@ pub async fn prepare_sms_auth(
     HttpResponse::Ok().json(BasicResponse {}).await
 }
 
-pub async fn check_sms_code(
-    code: web::Json<CheckSMSAuthReq>,
+pub async fn verify_code(
+    code: web::Json<VerifyCodeReq>,
     session: Session,
 ) -> Result<HttpResponse, WebError> {
     println!("check_sms_code");
@@ -105,7 +105,7 @@ pub async fn check_sms_code(
     .await;
 
     if code.code == expect {
-        HttpResponse::Ok().json(CheckSMSAuthResp { token }).await
+        HttpResponse::Ok().json(VerifyCodeResp { token }).await
     } else {
         utils::get_err_resp().await
     }

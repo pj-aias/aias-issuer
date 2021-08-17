@@ -6,7 +6,7 @@ use std::sync::Mutex;
 use std::env;
 
 use crate::handler;
-use crate::handler::{CheckSMSAuthReq, PrepareSMSAuthReq};
+use crate::handler::{SendCodeReq, VerifyCodeReq};
 
 use crate::db;
 
@@ -20,19 +20,19 @@ async fn test() {
     let app = App::new()
         .wrap(CookieSession::private(&[0; 32]).secure(true))
         // .data(data.clone())
-        .route("/prepare_code", web::post().to(handler::prepare_sms_auth))
-        .route("/check_verify", web::post().to(handler::check_sms_code));
+        .route("/send_code", web::post().to(handler::send_code))
+        .route("/verify_code", web::post().to(handler::verify_code));
 
     let mut app = test::init_service(app).await;
 
     let phone_number = env::var("SMS_TO").unwrap_or("000-000-0000".to_string());
-    let phone_req = PrepareSMSAuthReq {
+    let phone_req = SendCodeReq {
         phone_number: phone_number,
     };
     let phone_req = serde_json::to_string(&phone_req).unwrap();
 
     let req = test::TestRequest::post()
-        .uri("/prepare_code")
+        .uri("/send_code")
         .set_payload(phone_req)
         .header("Content-Type", "text/json")
         .data(data.clone())
@@ -51,10 +51,10 @@ async fn test() {
 
     let expect = env::var("AIAS_TEST_CODE").expect("Find SECRET environment variable");
 
-    let check_sms_req = CheckSMSAuthReq { code: expect };
+    let check_sms_req = VerifyCodeReq { code: expect };
     let check_sms_req = serde_json::to_string(&check_sms_req).unwrap();
     let check_sms_req = test::TestRequest::post()
-        .uri("/check_verify")
+        .uri("/verify_code")
         .cookie(cookie.clone())
         .set_payload(check_sms_req)
         .header("Content-Type", "text/json")
