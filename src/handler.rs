@@ -135,7 +135,7 @@ pub async fn issue_credential(token: web::Json<IssueCredReq>) -> Result<HttpResp
     let _tmp: Member = match rb.fetch_by_column("token", &token).await {
         Ok(tmp) => tmp,
         Err(_) => {
-            return HttpResponse::Forbidden().await;
+            return HttpResponse::Unauthorized().await;
         }
     };
 
