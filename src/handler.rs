@@ -1,6 +1,8 @@
+use crate::db::Member;
 use actix_session::Session;
 use actix_web::Error as WebError;
 use actix_web::{web, HttpResponse, Responder};
+use distributed_bss::issuer::Issuer;
 
 use crate::utils;
 use rand::distributions::Alphanumeric;
@@ -8,8 +10,11 @@ use rand::{thread_rng, Rng};
 use std::env;
 
 use crate::db;
+use crate::rbatis::crud::CRUD;
 
 use serde::{Deserialize, Serialize};
+
+use rmp_serde;
 
 #[derive(Deserialize, Serialize)]
 pub struct BasicResponse {}
@@ -27,6 +32,16 @@ pub struct VerifyCodeReq {
 #[derive(Deserialize, Serialize)]
 pub struct VerifyCodeResp {
     pub token: String,
+}
+
+#[derive(Deserialize, Serialize)]
+pub struct IssueCredReq {
+    pub token: String,
+}
+
+#[derive(Deserialize, Serialize)]
+pub struct IssueCredResp {
+    pub credential: String,
 }
 
 pub async fn hello() -> impl Responder {
@@ -109,4 +124,27 @@ pub async fn verify_code(
     } else {
         utils::get_err_resp().await
     }
+}
+
+pub async fn issue_credential(token: web::Json<IssueCredReq>) -> Result<HttpResponse, WebError> {
+    println!("issue credential");
+
+    let rb = db::init_db().await;
+
+    let token = &token.token;
+    let _tmp: Member = match rb.fetch_by_column("token", &token).await {
+        Ok(tmp) => tmp,
+        Err(_) => {
+            return HttpResponse::Forbidden().await;
+        }
+    };
+
+    let mut rng = thread_rng();
+    let issuer = Issuer::random(&mut rng);
+
+    let credential = issuer.issue(&mut rng);
+    let credential = rmp_serde::to_vec(&credential).expect("MessagePack encode error");
+    let credential = base64::encode(&credential);
+
+    HttpResponse::Ok().json(IssueCredResp { credential }).await
 }
