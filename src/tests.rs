@@ -13,7 +13,11 @@ async fn test() {
     let app = App::new()
         .wrap(CookieSession::private(&[0; 32]).secure(true))
         .route("/send_code", web::post().to(handler::send_code))
-        .route("/verify_code", web::post().to(handler::verify_code));
+        .route("/verify_code", web::post().to(handler::verify_code))
+        .route(
+            "/issue_credential",
+            web::post().to(handler::issue_credential),
+        );
 
     let mut app = test::init_service(app).await;
 
@@ -55,10 +59,25 @@ async fn test() {
 
     assert!(resp.status().is_success());
 
-    let bytes = test::read_body(resp).await;
-    let bytes = String::from_utf8(bytes.to_vec()).unwrap();
+    let token = test::read_body(resp).await;
+    let token = String::from_utf8(token.to_vec()).unwrap();
 
-    println!("data: {}", bytes);
+    println!("token: {}", token);
+
+    let issue_cred_req = test::TestRequest::post()
+        .uri("/issue_credential")
+        .set_payload(token)
+        .header("Content-Type", "text/json")
+        .to_request();
+
+    let resp = test::call_service(&mut app, issue_cred_req).await;
+
+    assert!(resp.status().is_success());
+
+    let cred = test::read_body(resp).await;
+    let cred = String::from_utf8(cred.to_vec()).unwrap();
+
+    println!("cred:{}", cred);
 }
 
 #[actix_rt::test]
