@@ -96,21 +96,28 @@ pub async fn verify_code(
     let expect = session.get::<String>("code")?;
     let expect = expect.unwrap();
 
-    let token: String = thread_rng()
-        .sample_iter(&Alphanumeric)
-        .take(32)
-        .map(char::from)
-        .collect();
+    let rb = db::init_db().await;
 
-    let rb = db::init_db();
+    let mut token = "".to_string();
 
-    // TODO: Check token conflict
+    loop {
+        token = thread_rng()
+            .sample_iter(&Alphanumeric)
+            .take(32)
+            .map(char::from)
+            .collect();
+
+        let _tmp: Member = match rb.fetch_by_column("token", &token).await {
+            Ok(mem) => mem,
+            Err(_) => break,
+        };
+    }
 
     let phone_number = session.get::<String>("phone_number")?;
     let phone_number = phone_number.unwrap();
 
     db::save(
-        &rb.await,
+        &rb,
         &db::Member {
             id: None,
             phone_number: Some(phone_number),
