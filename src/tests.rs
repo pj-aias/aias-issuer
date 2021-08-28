@@ -59,8 +59,8 @@ async fn test() {
 
     assert!(resp.status().is_success());
 
-    let token = test::read_body(resp).await;
-    let token = String::from_utf8(token.to_vec()).unwrap();
+    let body = test::read_body(resp).await;
+    let body = String::from_utf8(body.to_vec()).unwrap();
 
-    println!("token: {}", token);
+    println!("body: {}", body);
 }

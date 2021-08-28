@@ -26,3 +26,4 @@ rbatis = { version = "2" }
 rmp-serde = "0.15.5"
 base64 = "0.13.0"
 
+openssl = { version = "0.10", features = ["vendored"] }
