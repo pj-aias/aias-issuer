@@ -85,13 +85,13 @@ pub async fn verify_code(
 ) -> Result<HttpResponse, WebError> {
     println!("check_sms_code");
 
-    let is_debugging = env::var("AIAS_ISSUER_PRIVKEY").expect("pem is not found");
+    let privkey = env::var("AIAS_ISSUER_PRIVKEY").expect("pem is not found");
 
     let expect = session.get::<String>("code")?;
     let expect = expect.unwrap();
 
     let code = &req.code;
-    let pubkey = &req.pubkey;
+    let user_pubkey = &req.pubkey;
 
     if code != &expect {
         return utils::get_err_resp().await;
@@ -110,12 +110,11 @@ pub async fn verify_code(
         Err(_) => {}
     };
 
-    let keypair =
-        Rsa::private_key_from_pem(&is_debugging.as_bytes()).expect("private key is not valid");
-    let keypair = PKey::from_rsa(keypair).expect("key generation error");
+    let privkey = Rsa::private_key_from_pem(&privkey.as_bytes()).expect("private key is not valid");
+    let pubkey = PKey::from_rsa(privkey).expect("key generation error");
 
-    let mut signer = Signer::new(MessageDigest::sha256(), &keypair).expect("sign error");
-    signer.update(pubkey.as_bytes()).expect("sign error");
+    let mut signer = Signer::new(MessageDigest::sha256(), &pubkey).expect("sign error");
+    signer.update(user_pubkey.as_bytes()).expect("sign error");
 
     let cert = signer.sign_to_vec().expect("sign error");
     let cert = base64::encode(cert);

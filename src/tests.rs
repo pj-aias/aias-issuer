@@ -1,5 +1,10 @@
+use crate::handler::VerifyCodeResp;
 use actix_session::CookieSession;
 use actix_web::{test, web, App};
+use openssl::hash::MessageDigest;
+use openssl::pkey::PKey;
+use openssl::rsa::Rsa;
+use openssl::sign::Verifier;
 
 use std::env;
 
@@ -42,9 +47,11 @@ async fn test() {
 
     let expect = env::var("AIAS_TEST_CODE").expect("Find SECRET environment variable");
 
+    let user_pubkey = "hogehoge".to_string();
+
     let check_sms_req = VerifyCodeReq {
         code: expect,
-        pubkey: "".to_string(),
+        pubkey: user_pubkey.clone(),
     };
 
     let check_sms_req = serde_json::to_string(&check_sms_req).unwrap();
@@ -63,4 +70,16 @@ async fn test() {
     let body = String::from_utf8(body.to_vec()).unwrap();
 
     println!("body: {}", body);
+
+    let body: VerifyCodeResp = serde_json::from_str(&body).expect("format error");
+    let cert = base64::decode(body.cert).expect("base64 decode error");
+
+    let privkey = env::var("AIAS_ISSUER_PRIVKEY").expect("pem is not found");
+
+    let privkey = Rsa::private_key_from_pem(&privkey.as_bytes()).expect("private key is not valid");
+    let keypair = PKey::from_rsa(privkey).expect("key generation error");
+
+    let mut verifier = Verifier::new(MessageDigest::sha256(), &keypair).unwrap();
+    verifier.update(user_pubkey.as_bytes()).unwrap();
+    assert!(verifier.verify(&cert).unwrap());
 }
