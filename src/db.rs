@@ -9,7 +9,7 @@ use crate::rbatis::executor::Executor;
 pub struct Member {
     pub id: Option<u32>,
     pub phone_number: Option<String>,
-    pub token: Option<String>,
+    pub cert: Option<String>,
 }
 
 pub async fn init_db() -> Rbatis {
@@ -25,7 +25,7 @@ pub async fn init_db() -> Rbatis {
             members(
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 phone_number TEXT,
-                token TEXT
+                cert TEXT
             )",
         &vec![],
     )

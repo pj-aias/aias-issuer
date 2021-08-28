@@ -2,7 +2,6 @@ use crate::db::Member;
 use actix_session::Session;
 use actix_web::Error as WebError;
 use actix_web::{web, HttpResponse, Responder};
-use distributed_bss::issuer::Issuer;
 
 use crate::utils;
 use rand::distributions::Alphanumeric;
@@ -13,8 +12,6 @@ use crate::db;
 use crate::rbatis::crud::CRUD;
 
 use serde::{Deserialize, Serialize};
-
-use rmp_serde;
 
 #[derive(Deserialize, Serialize)]
 pub struct BasicResponse {}
@@ -27,21 +24,12 @@ pub struct SendCodeReq {
 #[derive(Deserialize, Serialize)]
 pub struct VerifyCodeReq {
     pub code: String,
+    pub pubkey: String,
 }
 
 #[derive(Deserialize, Serialize)]
 pub struct VerifyCodeResp {
-    pub token: String,
-}
-
-#[derive(Deserialize, Serialize)]
-pub struct IssueCredReq {
-    pub token: String,
-}
-
-#[derive(Deserialize, Serialize)]
-pub struct IssueCredResp {
-    pub credential: String,
+    pub cert: String,
 }
 
 pub async fn hello() -> impl Responder {
@@ -88,7 +76,7 @@ pub async fn send_code(
 }
 
 pub async fn verify_code(
-    code: web::Json<VerifyCodeReq>,
+    req: web::Json<VerifyCodeReq>,
     session: Session,
 ) -> Result<HttpResponse, WebError> {
     println!("check_sms_code");
@@ -96,62 +84,41 @@ pub async fn verify_code(
     let expect = session.get::<String>("code")?;
     let expect = expect.unwrap();
 
+    let code = &req.code;
+    let pubkey = &req.pubkey;
+
+    if code != &expect {
+        return utils::get_err_resp().await;
+    };
+
     let rb = db::init_db().await;
-
-    let mut token = "".to_string();
-
-    loop {
-        token = thread_rng()
-            .sample_iter(&Alphanumeric)
-            .take(32)
-            .map(char::from)
-            .collect();
-
-        let _tmp: Member = match rb.fetch_by_column("token", &token).await {
-            Ok(mem) => mem,
-            Err(_) => break,
-        };
-    }
 
     let phone_number = session.get::<String>("phone_number")?;
     let phone_number = phone_number.unwrap();
+
+    match rb
+        .fetch_by_column::<Member, String>("phone_number", &phone_number)
+        .await
+    {
+        Ok(_) => return utils::get_err_resp().await,
+        Err(_) => {}
+    };
+
+    let cert = pubkey;
 
     db::save(
         &rb,
         &db::Member {
             id: None,
             phone_number: Some(phone_number),
-            token: Some(token.clone()),
+            cert: Some(cert.clone()),
         },
     )
     .await;
 
-    if code.code == expect {
-        HttpResponse::Ok().json(VerifyCodeResp { token }).await
-    } else {
-        utils::get_err_resp().await
-    }
-}
-
-pub async fn issue_credential(token: web::Json<IssueCredReq>) -> Result<HttpResponse, WebError> {
-    println!("issue credential");
-
-    let rb = db::init_db().await;
-
-    let token = &token.token;
-    let _tmp: Member = match rb.fetch_by_column("token", &token).await {
-        Ok(tmp) => tmp,
-        Err(_) => {
-            return HttpResponse::Unauthorized().await;
-        }
-    };
-
-    let mut rng = thread_rng();
-    let issuer = Issuer::random(&mut rng);
-
-    let credential = issuer.issue(&mut rng);
-    let credential = rmp_serde::to_vec(&credential).expect("MessagePack encode error");
-    let credential = base64::encode(&credential);
-
-    HttpResponse::Ok().json(IssueCredResp { credential }).await
+    HttpResponse::Ok()
+        .json(VerifyCodeResp {
+            cert: cert.to_string(),
+        })
+        .await
 }

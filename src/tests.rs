@@ -4,7 +4,7 @@ use actix_web::{test, web, App};
 use std::env;
 
 use crate::handler;
-use crate::handler::{IssueCredReq, SendCodeReq, VerifyCodeReq};
+use crate::handler::{SendCodeReq, VerifyCodeReq};
 
 use serde_json;
 
@@ -13,11 +13,7 @@ async fn test() {
     let app = App::new()
         .wrap(CookieSession::private(&[0; 32]).secure(true))
         .route("/send_code", web::post().to(handler::send_code))
-        .route("/verify_code", web::post().to(handler::verify_code))
-        .route(
-            "/issue_credential",
-            web::post().to(handler::issue_credential),
-        );
+        .route("/verify_code", web::post().to(handler::verify_code));
 
     let mut app = test::init_service(app).await;
 
@@ -46,7 +42,11 @@ async fn test() {
 
     let expect = env::var("AIAS_TEST_CODE").expect("Find SECRET environment variable");
 
-    let check_sms_req = VerifyCodeReq { code: expect };
+    let check_sms_req = VerifyCodeReq {
+        code: expect,
+        pubkey: "".to_string(),
+    };
+
     let check_sms_req = serde_json::to_string(&check_sms_req).unwrap();
     let check_sms_req = test::TestRequest::post()
         .uri("/verify_code")
@@ -63,49 +63,4 @@ async fn test() {
     let token = String::from_utf8(token.to_vec()).unwrap();
 
     println!("token: {}", token);
-
-    let issue_cred_req = test::TestRequest::post()
-        .uri("/issue_credential")
-        .set_payload(token)
-        .header("Content-Type", "text/json")
-        .to_request();
-
-    let resp = test::call_service(&mut app, issue_cred_req).await;
-
-    assert!(resp.status().is_success());
-
-    let cred = test::read_body(resp).await;
-    let cred = String::from_utf8(cred.to_vec()).unwrap();
-
-    println!("cred:{}", cred);
-}
-
-#[actix_rt::test]
-async fn test_forbidden() {
-    let app = App::new()
-        .wrap(CookieSession::private(&[0; 32]).secure(true))
-        .route(
-            "/issue_credential",
-            web::post().to(handler::issue_credential),
-        );
-
-    let mut app = test::init_service(app).await;
-
-    let req = IssueCredReq {
-        token: "hogehoge".to_string(),
-    };
-    let req = serde_json::to_string(&req).unwrap();
-
-    let req = test::TestRequest::post()
-        .uri("/issue_credential")
-        .set_payload(req)
-        .header("Content-Type", "text/json")
-        .to_request();
-
-    let resp = test::call_service(&mut app, req).await;
-    let resp = resp.response();
-
-    let status = resp.status();
-
-    assert_eq!(status, 401)
 }
