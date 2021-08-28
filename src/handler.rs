@@ -2,6 +2,10 @@ use crate::db::Member;
 use actix_session::Session;
 use actix_web::Error as WebError;
 use actix_web::{web, HttpResponse, Responder};
+use openssl::hash::MessageDigest;
+use openssl::pkey::PKey;
+use openssl::rsa::Rsa;
+use openssl::sign::Signer;
 
 use crate::utils;
 use rand::distributions::Alphanumeric;
@@ -43,7 +47,7 @@ pub async fn send_code(
 ) -> Result<HttpResponse, WebError> {
     println!("send_sms");
 
-    let is_debugging = env::var("AIAS_DEBUG").expect("Find DEBUGGING environment variable");
+    let is_debugging = env::var("AIAS_DEBUG").unwrap_or("true".to_string());
     let code: String = thread_rng()
         .sample_iter(&Alphanumeric)
         .take(32)
@@ -81,11 +85,13 @@ pub async fn verify_code(
 ) -> Result<HttpResponse, WebError> {
     println!("check_sms_code");
 
+    let privkey = env::var("AIAS_ISSUER_PRIVKEY").expect("pem is not found");
+
     let expect = session.get::<String>("code")?;
     let expect = expect.unwrap();
 
     let code = &req.code;
-    let pubkey = &req.pubkey;
+    let user_pubkey = &req.pubkey;
 
     if code != &expect {
         return utils::get_err_resp().await;
@@ -104,7 +110,14 @@ pub async fn verify_code(
         Err(_) => {}
     };
 
-    let cert = pubkey;
+    let privkey = Rsa::private_key_from_pem(&privkey.as_bytes()).expect("private key is not valid");
+    let pubkey = PKey::from_rsa(privkey).expect("key generation error");
+
+    let mut signer = Signer::new(MessageDigest::sha256(), &pubkey).expect("sign error");
+    signer.update(user_pubkey.as_bytes()).expect("sign error");
+
+    let cert = signer.sign_to_vec().expect("sign error");
+    let cert = base64::encode(cert);
 
     db::save(
         &rb,
