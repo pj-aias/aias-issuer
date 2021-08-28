@@ -26,6 +26,3 @@ rbatis = { version = "2" }
 rmp-serde = "0.15.5"
 base64 = "0.13.0"
 
-[dependencies.distributed-bss]
-git="https://github.com/pj-aias/distributed-bbs"
-branch = "main"
