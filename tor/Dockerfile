@@ -6,4 +6,4 @@ RUN chown -R tor /etc/tor /var/lib/tor
 RUN chmod -R 700 /etc/tor /var/lib/tor
 
 USER tor
-CMD sleep 10; tor -f /etc/tor/torrc
+CMD sleep 10; touch /var/lib/tor; tor -f /etc/tor/torrc
