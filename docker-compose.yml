@@ -1,13 +1,11 @@
+version: "3.9"
 services:
     app:
-        image: rust:latest
+        build: .
         command: cargo run
         working_dir: /app
         volumes:
-            - ./:/app
+            - ./data:/app/data
         ports: 
             - 8080:8080
-        environment:
-            - USER=aias
         tty: true
-    
