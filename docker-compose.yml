@@ -17,3 +17,6 @@ services:
         volumes:
             - ./secrets/tor:/var/lib/tor
             - ./tor/torrc:/etc/tor/torrc
+        depends_on: 
+            - api
+        
