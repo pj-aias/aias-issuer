@@ -1,7 +1,7 @@
 version: "3.9"
 services:
     app:
-        build: .
+        build: ./app
         command: cargo run
         working_dir: /app
         volumes:
