@@ -1,6 +1,6 @@
 version: "3.9"
 services:
-    app:
+    api:
         build: ./app
         command: cargo run
         working_dir: /app
@@ -9,3 +9,11 @@ services:
         ports: 
             - 8080:8080
         tty: true
+
+    tor:
+        build: ./tor
+        ports:
+            - "9050:9050"
+        volumes:
+            - ./secrets/tor:/var/lib/tor
+            - ./tor/torrc:/etc/tor/torrc
