@@ -15,8 +15,7 @@ services:
         ports:
             - "9050:9050"
         volumes:
-            - ./secrets/tor:/var/lib/tor
+            - ./data/tor:/var/lib/tor
             - ./tor/torrc:/etc/tor/torrc
         depends_on: 
             - api
-        

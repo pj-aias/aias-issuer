@@ -1,9 +1,4 @@
 FROM alpine:latest
 
 RUN apk update && apk add tor curl
-
-RUN chown -R tor /etc/tor /var/lib/tor
-RUN chmod -R 700 /etc/tor /var/lib/tor
-
-USER tor
-CMD sleep 10; touch /var/lib/tor; tor -f /etc/tor/torrc
+CMD tor -f /etc/tor/torrc
