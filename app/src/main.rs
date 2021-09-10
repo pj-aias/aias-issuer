@@ -26,7 +26,7 @@ async fn main() -> io::Result<()> {
 
     HttpServer::new(move || {
         App::new()
-            .wrap(CookieSession::private(&key).secure(true))
+            .wrap(CookieSession::private(&key).secure(false))
             .route("/hello", web::get().to(handler::hello))
             .route("/send_code", web::post().to(handler::send_code))
             .route("/verify_code", web::post().to(handler::verify_code))

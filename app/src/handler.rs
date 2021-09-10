@@ -66,15 +66,8 @@ pub async fn send_code(
         }
     }
 
-    match session.set("phone_number", phone_number) {
-        Ok(_) => {}
-        Err(_) => return utils::get_err_resp().await,
-    }
-
-    match session.set("code", code) {
-        Ok(_) => {}
-        Err(_) => return utils::get_err_resp().await,
-    }
+    session.set("phone_number", phone_number)?;
+    session.set("code", code)?;
 
     HttpResponse::Ok().json(BasicResponse {}).await
 }
@@ -87,12 +80,13 @@ pub async fn verify_code(
 
     let privkey = env::var("AIAS_ISSUER_PRIVKEY").expect("pem is not found");
 
-    let expect = session.get::<String>("code")?;
-    let expect = expect.unwrap();
+    let expect = session.get::<String>("code")?.unwrap();
+    // let expect = expect.unwrap();
 
     let code = &req.code;
     let user_pubkey = &req.pubkey;
 
+    println!("code: {}, {}", code, expect);
     if code != &expect {
         return utils::get_err_resp().await;
     };
