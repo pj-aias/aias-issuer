@@ -9,6 +9,8 @@ services:
         ports: 
             - 8080:8080
         tty: true
+        env_file: 
+            - ./.env
 
     tor:
         build: ./tor
