@@ -5,17 +5,14 @@ services:
         command: cargo run
         working_dir: /app
         volumes:
-            - ./data:/app/data
-        ports: 
-            - 8080:8080
+            - ./app:/app/
+            - ./data/app/registry:/usr/local/cargo/registry/
         tty: true
         env_file: 
             - ./.env
 
     tor:
         build: ./tor
-        ports:
-            - "9050:9050"
         volumes:
             - ./data/tor:/var/lib/tor
             - ./tor/torrc:/etc/tor/torrc
