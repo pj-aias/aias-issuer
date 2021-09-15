@@ -1,7 +1,9 @@
 # aias-issuer
 
-Issuer entity of AIAS project.
-This entity is responsible for first registering for users.
+Issuer entity of AIAS project.  
+This entity is responsible for first registering for users.  
+
+**Note: In this repository, the server use sms authentication, but we should use eKYC.**
 
 ## How to install
 ### 1. Clone Repository
