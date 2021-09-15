@@ -5,7 +5,10 @@ use openssl::hash::MessageDigest;
 use openssl::pkey::PKey;
 use openssl::rsa::Rsa;
 use openssl::sign::Verifier;
+use rand::distributions::Alphanumeric;
+use rand::thread_rng;
 
+use rand::Rng;
 use std::env;
 
 use crate::handler;
@@ -22,7 +25,12 @@ async fn test() {
 
     let mut app = test::init_service(app).await;
 
-    let phone_number = env::var("SMS_TO").unwrap_or("000-000-0000".to_string());
+    let phone_number: String = thread_rng()
+        .sample_iter(&Alphanumeric)
+        .take(32)
+        .map(char::from)
+        .collect();
+
     let phone_req = SendCodeReq {
         phone_number: phone_number,
     };
@@ -42,6 +50,8 @@ async fn test() {
         .cookies()
         .find(|c| c.name() == "actix-session")
         .expect("failed to get id from response's session");
+
+    print!("status:{}\n", resp.status());
 
     assert!(resp.status().is_success());
 
@@ -63,6 +73,7 @@ async fn test() {
         .to_request();
 
     let resp = test::call_service(&mut app, check_sms_req).await;
+    print!("status:{}\n", resp.status());
 
     assert!(resp.status().is_success());
 
@@ -77,7 +88,7 @@ async fn test() {
     let privkey = env::var("AIAS_ISSUER_PRIVKEY").expect("pem is not found");
 
     let privkey = Rsa::private_key_from_pem(&privkey.as_bytes()).expect("private key is not valid");
-    let keypair = PKey::from_rsa(privkey).expect("key generation error");
+    let keypair = PKey::from_rsa(privkey).expect("key generation Perror");
 
     let mut verifier = Verifier::new(MessageDigest::sha256(), &keypair).unwrap();
     verifier.update(user_pubkey.as_bytes()).unwrap();

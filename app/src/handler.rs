@@ -48,16 +48,21 @@ pub async fn send_code(
     println!("send_sms");
 
     let is_debugging = env::var("AIAS_DEBUG").unwrap_or("true".to_string());
-    let code: String = thread_rng()
+    let mut code: String = thread_rng()
         .sample_iter(&Alphanumeric)
         .take(32)
         .map(char::from)
         .collect();
 
     let phone_number = &phone_number.phone_number;
+    if !utils::validate_phone_number(phone_number) {
+        return utils::get_err_resp().await;
+    }
+
     let body = format!("code {}", code);
 
     if is_debugging == "true" {
+        code = "0000".to_string();
         env::set_var("AIAS_TEST_CODE", code.clone());
     } else {
         match utils::send_sms(phone_number, &body).await {
@@ -66,15 +71,8 @@ pub async fn send_code(
         }
     }
 
-    match session.set("phone_number", phone_number) {
-        Ok(_) => {}
-        Err(_) => return utils::get_err_resp().await,
-    }
-
-    match session.set("code", code) {
-        Ok(_) => {}
-        Err(_) => return utils::get_err_resp().await,
-    }
+    session.set::<String>("phone_number", phone_number.to_string())?;
+    session.set::<String>("code", code)?;
 
     HttpResponse::Ok().json(BasicResponse {}).await
 }
@@ -87,12 +85,13 @@ pub async fn verify_code(
 
     let privkey = env::var("AIAS_ISSUER_PRIVKEY").expect("pem is not found");
 
-    let expect = session.get::<String>("code")?;
-    let expect = expect.unwrap();
+    let expect = session.get::<String>("code")?.unwrap();
+    // let expect = expect.unwrap();
 
     let code = &req.code;
     let user_pubkey = &req.pubkey;
 
+    println!("code: {}, {}", code, expect);
     if code != &expect {
         return utils::get_err_resp().await;
     };
