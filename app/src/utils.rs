@@ -32,6 +32,6 @@ pub async fn get_err_resp() -> Result<HttpResponse, WebError> {
 /// "090-1234-5678" -> false
 /// "01012345678" -> false
 pub fn validate_phone_number(phone: &str) -> bool {
-    let phone_pattern = Regex::new("^0[789]0-[0-9]{4}-[0-9]{4}$").expect("invalid regexp");
+    let phone_pattern = Regex::new("^0[789]0[0-9]{4}[0-9]{4}$").expect("invalid regexp");
     phone_pattern.is_match(phone)
 }
