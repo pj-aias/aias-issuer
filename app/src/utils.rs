@@ -1,6 +1,7 @@
 use crate::handler::BasicResponse;
 use actix_web::Error as WebError;
 use actix_web::HttpResponse;
+use regex::Regex;
 use std::env;
 use twilio::{Client, OutboundMessage};
 
@@ -23,4 +24,14 @@ pub async fn send_sms(to: &str, body: &str) -> Result<(), ()> {
 
 pub async fn get_err_resp() -> Result<HttpResponse, WebError> {
     HttpResponse::Forbidden().json(BasicResponse {}).await
+}
+
+/// validates japanese mobile phone number format.
+/// e.g.)
+/// "09012345678" -> true
+/// "090-1234-5678" -> false
+/// "01012345678" -> false
+pub fn validate_phone_number(phone: &str) -> bool {
+    let phone_pattern = Regex::new("^0[789]0-[0-9]{4}-[0-9]{4}$").expect("invalid regexp");
+    phone_pattern.is_match(phone)
 }

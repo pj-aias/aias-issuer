@@ -55,6 +55,10 @@ pub async fn send_code(
         .collect();
 
     let phone_number = &phone_number.phone_number;
+    if !utils::validate_phone_number(phone_number) {
+        return utils::get_err_resp().await;
+    }
+
     let body = format!("code {}", code);
 
     if is_debugging == "true" {
