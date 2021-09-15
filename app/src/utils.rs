@@ -35,3 +35,24 @@ pub fn validate_phone_number(phone: &str) -> bool {
     let phone_pattern = Regex::new("^0[789]0[0-9]{4}[0-9]{4}$").expect("invalid regexp");
     phone_pattern.is_match(phone)
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn ok_phone_number() {
+        let phone = "09012345678";
+        assert!(validate_phone_number(phone));
+    }
+
+    #[test]
+    fn ng_phone_number() {
+        let phone = "090-1234-5678";
+        assert!(!validate_phone_number(phone));
+        let phone = "01012345678";
+        assert!(!validate_phone_number(phone));
+        let phone = "hogefuga";
+        assert!(!validate_phone_number(phone));
+    }
+}
