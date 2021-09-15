@@ -15,12 +15,8 @@ use std::io;
 
 #[actix_rt::main]
 async fn main() -> io::Result<()> {
-    let mut key = [0; 32];
     let mut rng = rand::thread_rng();
-
-    for i in 0..32 {
-        key[i] = rng.gen();
-    }
+    let key: [u8; 32] = rng.gen();
 
     let _ = db::init_db();
 
