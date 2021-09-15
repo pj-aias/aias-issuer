@@ -56,7 +56,7 @@ pub async fn send_code(
 
     let phone_number = &phone_number.phone_number;
     if !utils::validate_phone_number(phone_number) {
-        return utils::get_err_resp().await;
+        return utils::get_err_resp(format!("invalid phone number: {}", phone_number)).await;
     }
 
     let body = format!("code {}", code);
@@ -67,7 +67,7 @@ pub async fn send_code(
     } else {
         match utils::send_sms(phone_number, &body).await {
             Ok(_) => {}
-            Err(_) => return utils::get_err_resp().await,
+            Err(e) => return utils::get_err_resp(e).await,
         }
     }
 
@@ -93,7 +93,7 @@ pub async fn verify_code(
 
     println!("code: {}, {}", code, expect);
     if code != &expect {
-        return utils::get_err_resp().await;
+        return utils::get_err_resp(format!("bad code: {} (expected {})", code, expect)).await;
     };
 
     let rb = db::init_db().await;
@@ -105,7 +105,7 @@ pub async fn verify_code(
         .fetch_by_column::<Member, String>("phone_number", &phone_number)
         .await
     {
-        Ok(_) => return utils::get_err_resp().await,
+        Ok(_) => return utils::get_err_resp(format!("phone number found: {}", phone_number)).await,
         Err(_) => {}
     };
 

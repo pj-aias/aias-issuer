@@ -22,7 +22,8 @@ pub async fn send_sms(to: &str, body: &str) -> Result<(), ()> {
     }
 }
 
-pub async fn get_err_resp() -> Result<HttpResponse, WebError> {
+pub async fn get_err_resp<E: std::fmt::Debug>(err: E) -> Result<HttpResponse, WebError> {
+    println!("err: {:?}", err);
     HttpResponse::Forbidden().json(BasicResponse {}).await
 }
 
