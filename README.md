@@ -33,7 +33,7 @@ ACCOUNT_ID="twilio account id"
 AUTH_TOKEN="twilio authentication token"
 ```
 
-### 3. crate db
+### 3. Crate database
 
 Create sqlite3 DB with the cat command.
 
@@ -41,7 +41,7 @@ Create sqlite3 DB with the cat command.
 touch aias.db
 ```
 
-### 4. run
+### 4. Run servers
 
 Run servers with docker-compose command.
 
