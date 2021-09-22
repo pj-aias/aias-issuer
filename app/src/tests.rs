@@ -25,11 +25,7 @@ async fn test() {
 
     let mut app = test::init_service(app).await;
 
-    let phone_number: String = thread_rng()
-        .sample_iter(&Alphanumeric)
-        .take(32)
-        .map(char::from)
-        .collect();
+    let phone_number: String = "07000000000".to_string();
 
     let phone_req = SendCodeReq {
         phone_number: phone_number,

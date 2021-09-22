@@ -56,7 +56,11 @@ pub async fn send_code(
 
     let phone_number = &phone_number.phone_number;
     if !utils::validate_phone_number(phone_number) {
-        return utils::get_err_resp().await;
+        println!("not valid sms");
+
+        return HttpResponse::BadRequest()
+            .body("not valid phone number")
+            .await;
     }
 
     let body = format!("code {}", code);
@@ -67,7 +71,10 @@ pub async fn send_code(
     } else {
         match utils::send_sms(phone_number, &body).await {
             Ok(_) => {}
-            Err(_) => return utils::get_err_resp().await,
+            Err(_) => {
+                println!("can't send sms");
+                return HttpResponse::BadRequest().body("can't send sms").await;
+            }
         }
     }
 
@@ -85,29 +92,27 @@ pub async fn verify_code(
 
     let privkey = env::var("AIAS_ISSUER_PRIVKEY").expect("pem is not found");
 
-    let expect = session.get::<String>("code")?.unwrap();
-    // let expect = expect.unwrap();
+    let expect = match session.get::<String>("code")? {
+        Some(phone_number) => phone_number,
+        None => {
+            return HttpResponse::Forbidden()
+                .body("missing sending sms log")
+                .await
+        }
+    };
 
     let code = &req.code;
     let user_pubkey = &req.pubkey;
 
     println!("code: {}, {}", code, expect);
     if code != &expect {
-        return utils::get_err_resp().await;
+        return HttpResponse::Forbidden().body("code is wrong").await;
     };
 
     let rb = db::init_db().await;
 
     let phone_number = session.get::<String>("phone_number")?;
     let phone_number = phone_number.unwrap();
-
-    match rb
-        .fetch_by_column::<Member, String>("phone_number", &phone_number)
-        .await
-    {
-        Ok(_) => return utils::get_err_resp().await,
-        Err(_) => {}
-    };
 
     let privkey = Rsa::private_key_from_pem(&privkey.as_bytes()).expect("private key is not valid");
     let pubkey = PKey::from_rsa(privkey).expect("key generation error");
